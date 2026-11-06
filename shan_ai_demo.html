@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="si">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHAN AI — Sinhala Voice Assistant</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#151d33;--accent:#6ee7d8;--muted:#aab6d3}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1b2b4a,var(--bg) 55%);font-family:system-ui,sans-serif;color:#f4f7ff;min-height:100vh;display:grid;place-items:center;padding:18px}
+main{width:min(100%,520px);background:#111a2dcc;border:1px solid #34415f;border-radius:24px;padding:24px;box-shadow:0 20px 70px #0008}
+h1{margin:0;font-size:2rem;letter-spacing:.04em} .sub{color:var(--muted);margin:5px 0 22px}
+.status{color:var(--accent);font-size:.9rem;margin-bottom:12px}
+button{border:0;border-radius:14px;padding:13px 16px;font-size:1rem;font-weight:650;cursor:pointer}
+#listen{background:var(--accent);color:#07151b;width:100%}#stop{background:#35415c;color:white;width:100%;margin-top:9px}
+.card{background:var(--panel);border:1px solid #34415f;border-radius:16px;padding:14px;margin-top:14px;min-height:76px}
+.label{color:var(--muted);font-size:.8rem;margin-bottom:7px}.text{white-space:pre-wrap;line-height:1.5}
+.note{color:var(--muted);font-size:.82rem;line-height:1.5;margin-top:16px}
+</style>
+</head>
+<body>
+<main>
+  <h1>SHAN AI</h1>
+  <div class="sub">සිංහල හඬ සහායකයා</div>
+  <div id="status" class="status">සූදානම්</div>
+  <button id="listen">🎙️ කතා කරන්න</button>
+  <button id="stop">හඬ නවත්වන්න</button>
+  <section class="card"><div class="label">ඔයා කිව්වේ</div><div id="heard" class="text">මෙතැන ඔයාගේ කතාව පෙන්වයි.</div></section>
+  <section class="card"><div class="label">SHAN AI ගේ පිළිතුර</div><div id="answer" class="text">ආයුබෝවන්! මට සිංහලෙන් කතා කරන්න.</div></section>
+  <div class="note">මෙය ආරම්භක Demo එකකි. හඬ හඳුනාගැනීම සඳහා Internet සහ Chrome අවශ්‍ය විය හැක. AI සේවාවක් තවම සම්බන්ධ කර නැති නිසා දැනට සරල විධාන කිහිපයකට පමණක් පිළිතුරු දෙයි.</div>
+</main>
+<script>
+const statusEl=document.querySelector('#status'),heardEl=document.querySelector('#heard'),answerEl=document.querySelector('#answer');
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+let recognition;
+function speak(text){
+  answerEl.textContent=text;
+  if(!('speechSynthesis' in window)){statusEl.textContent='මෙම Browser එකේ හඬ පිටකිරීම සහාය නොදක්වයි.';return;}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang='si-LK';u.rate=.94;
+  speechSynthesis.speak(u);
+}
+function reply(raw){
+  const t=raw.toLowerCase();
+  if(t.includes('ආයුබෝවන්')||t.includes('hello')) return 'ආයුබෝවන්! මම SHAN AI. ඔයාට මොනවද දැනගන්න ඕනේ?';
+  if(t.includes('නම')||t.includes('කවුද')) return 'මගේ නම SHAN AI. මම ඔයාගේ සිංහල හඬ සහායකයා.';
+  if(t.includes('වෙලාව')) return 'දැන් වෙලාව ' + new Date().toLocaleTimeString('si-LK',{hour:'numeric',minute:'2-digit'}) + '.';
+  if(t.includes('දිනය')||t.includes('අද දවස')) return 'අද දිනය ' + new Date().toLocaleDateString('si-LK',{year:'numeric',month:'long',day:'numeric'}) + '.';
+  if(t.includes('ස්තුති')) return 'ඒකට කමක් නැහැ! තවත් දෙයක් අහන්න.';
+  if(t.includes('නවත්වන්න')||t.includes('බායි')) return 'හරි. නැවත කතා කරන්න ඕනේ වෙලාවක මම සූදානම්.';
+  return 'ඔයා කිව්වේ: ' + raw + '. මේක තවම Demo සංස්කරණයයි. පසුව AI සේවාවක් සම්බන්ධ කරලා වැඩි ප්‍රශ්නවලට පිළිතුරු දෙන විදිහට හදමු.';
+}
+document.querySelector('#listen').addEventListener('click',()=>{
+  if(!SpeechRecognition){statusEl.textContent='මෙම Browser එකේ Speech Recognition සහාය නැහැ. Android Chrome භාවිත කර බලන්න.';return;}
+  if(!recognition){recognition=new SpeechRecognition();recognition.lang='si-LK';recognition.interimResults=false;recognition.maxAlternatives=1;
+    recognition.onstart=()=>statusEl.textContent='අහගෙන ඉන්නවා…';
+    recognition.onerror=e=>statusEl.textContent='හඬ හඳුනාගැනීමේ දෝෂය: '+e.error;
+    recognition.onend=()=>{if(statusEl.textContent==='අහගෙන ඉන්නවා…')statusEl.textContent='සූදානම්';};
+    recognition.onresult=e=>{const said=e.results[0][0].transcript;heardEl.textContent=said;speak(reply(said));statusEl.textContent='පිළිතුර සකස් කළා';};
+  }
+  try{recognition.start();}catch(e){statusEl.textContent='නැවත උත්සාහ කිරීමට තත්පර කිහිපයක් ඉන්න.';}
+});
+document.querySelector('#stop').addEventListener('click',()=>{if(recognition)recognition.stop();if('speechSynthesis'in window)speechSynthesis.cancel();statusEl.textContent='නවත්වලා';});
+</script>
+</body>
+</html>
